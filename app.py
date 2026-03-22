@@ -28,7 +28,6 @@ from prophet import Prophet
 from stable_baselines3 import PPO
 import gymnasium as gym
 
-from openai import OpenAI
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
