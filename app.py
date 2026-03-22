@@ -1,5 +1,5 @@
 # ======================================================
-# 🚀 AI NLP + ML ANALYTICS PLATFORM (FULL UPGRADE)
+# 🚀 AI NLP + ML ANALYTICS PLATFORM
 # ======================================================
 
 import streamlit as st
@@ -7,18 +7,48 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import shap
+import optuna
 import matplotlib.pyplot as plt
 import re
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, r2_score
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.feature_extraction.text import TfidfVectorizer
 
+# ML Models
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.svm import SVC, SVR
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+
+from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
+from catboost import CatBoostClassifier, CatBoostRegressor
+
+# NLP + Topic
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+
+# Semi
+from sklearn.semi_supervised import LabelPropagation, SelfTrainingClassifier
+
+# Advanced NLP
+from transformers import pipeline
+
+# RL + TS
+from prophet import Prophet
+from stable_baselines3 import PPO
+import gymnasium as gym
+
+# ChatGPT
+from openai import OpenAI
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+
+# Optional
 from collections import Counter
 
-# Optional NLP libs
 try:
     from wordcloud import WordCloud
     import nltk
@@ -28,20 +58,18 @@ try:
 except:
     stop_words = set()
 
-from reportlab.pdfgen import canvas
-
 # ======================================================
-# UI CONFIG
+# UI
 # ======================================================
 
 st.set_page_config(layout="wide")
-st.title("🚀 AI NLP + ML Analytics Platform")
+st.title("🚀 AI Analytics Platform")
 
 # ======================================================
-# FILE UPLOAD
+# 1 FILE UPLOAD
 # ======================================================
 
-file = st.file_uploader("Upload CSV / Excel", type=["csv","xlsx"])
+file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
 
 if file:
 
@@ -49,14 +77,16 @@ if file:
 
     st.success("Dataset Loaded")
 
-    st.subheader("📄 Data Preview")
     st.dataframe(df.head())
-    st.write("Shape:", df.shape)
-    st.write(df.describe())
+    st.dataframe(df.tail())
 
-    # ======================================================
-    # DATA CLEANING
-    # ======================================================
+    st.write("Shape:", df.shape)
+    st.write("Total Values:", df.size)
+    st.write("Statistics:", df.describe())
+
+# ======================================================
+# 2 DATA CLEANING
+# ======================================================
 
     df = df.drop_duplicates()
 
@@ -66,20 +96,29 @@ if file:
         else:
             df[col] = df[col].fillna(df[col].mean())
 
-    # ======================================================
-    # NLP PROCESSING
-    # ======================================================
+# ======================================================
+# 3 FEATURE ENGINEERING
+# ======================================================
+
+    numeric_cols = df.select_dtypes(include=np.number).columns
+
+    for col in numeric_cols:
+        df[f"{col}_square"] = df[col]**2
+        df[f"{col}_log"] = np.log1p(np.abs(df[col]) + 1)
+
+# ======================================================
+# 🔥 ADVANCED NLP BLOCK (ADDED)
+# ======================================================
 
     text_cols = df.select_dtypes(include="object").columns
     X_text = None
 
     if len(text_cols) > 0:
 
-        st.subheader("🧠 Advanced NLP Processing")
+        st.subheader("🧠 Advanced NLP")
 
-        text_col = st.selectbox("Select Text Column", text_cols)
+        text_col = st.selectbox("Text Column", text_cols)
 
-        # ---------- CLEAN TEXT ----------
         def clean_text(text):
             text = str(text).lower()
             text = re.sub(r'[^a-zA-Z ]', '', text)
@@ -89,71 +128,61 @@ if file:
 
         df["clean_text"] = df[text_col].apply(clean_text)
 
-        st.write("Cleaned Text Sample")
-        st.dataframe(df[["clean_text"]].head())
-
-        # ---------- TF-IDF ----------
+        # TF-IDF
         tfidf = TfidfVectorizer(max_features=300, ngram_range=(1,2))
         X_text = tfidf.fit_transform(df["clean_text"]).toarray()
 
         st.write("TF-IDF Shape:", X_text.shape)
 
-        # ---------- WORD FREQUENCY ----------
-        st.markdown("### 🔤 Top Words")
+        # Word Frequency
+        words = " ".join(df["clean_text"])
+        freq = Counter(words.split())
+        freq_df = pd.DataFrame(freq.items(), columns=["Word","Count"]).sort_values("Count",ascending=False)
 
-        all_words = " ".join(df["clean_text"])
-        word_freq = Counter(all_words.split())
+        st.plotly_chart(px.bar(freq_df.head(20), x="Count", y="Word", orientation="h"))
 
-        freq_df = pd.DataFrame(word_freq.items(),
-                               columns=["Word","Count"]
-                               ).sort_values("Count", ascending=False)
-
-        st.dataframe(freq_df.head(20))
-
-        fig = px.bar(freq_df.head(20),
-                     x="Count",
-                     y="Word",
-                     orientation="h")
-
-        st.plotly_chart(fig)
-
-        # ---------- WORD CLOUD ----------
-        st.markdown("### ☁ Word Cloud")
-
+        # WordCloud
         try:
-            wc = WordCloud(width=800, height=400).generate(all_words)
+            wc = WordCloud().generate(words)
             fig, ax = plt.subplots()
             ax.imshow(wc)
             ax.axis("off")
             st.pyplot(fig)
         except:
-            st.info("WordCloud not installed")
+            pass
 
-        # ---------- SENTIMENT ----------
-        st.markdown("### 😊 Sentiment Analysis")
+        # 🔥 BERT SENTIMENT
+        st.markdown("### 🤖 BERT Sentiment")
 
-        def sentiment(text):
-            pos = ["good","great","excellent","love","happy"]
-            neg = ["bad","worst","hate","poor","sad"]
+        try:
+            bert = pipeline("sentiment-analysis")
+            sample = df["clean_text"].head(20).tolist()
+            result = bert(sample)
+            st.write(result)
+        except:
+            st.warning("BERT not supported in environment")
 
-            score = 0
-            for w in text.split():
-                if w in pos:
-                    score += 1
-                elif w in neg:
-                    score -= 1
+        # 🔥 TOPIC MODELING (LDA)
+        st.markdown("### 🧩 Topic Modeling")
 
-            return "Positive" if score > 0 else "Negative" if score < 0 else "Neutral"
+        try:
+            vec = CountVectorizer(stop_words="english")
+            dtm = vec.fit_transform(df["clean_text"])
 
-        df["sentiment"] = df["clean_text"].apply(sentiment)
+            lda = LatentDirichletAllocation(n_components=5)
+            lda.fit(dtm)
 
-        st.dataframe(df[["clean_text","sentiment"]].head())
+            words = vec.get_feature_names_out()
 
-        st.plotly_chart(px.pie(df, names="sentiment"))
+            for i, topic in enumerate(lda.components_):
+                top_words = [words[j] for j in topic.argsort()[-10:]]
+                st.write(f"Topic {i+1}: {top_words}")
+        except:
+            st.warning("Topic modeling failed")
 
-    # ======================================================
-    # DASHBOARD
-    # ======================================================
+# ======================================================
+# 4 DASHBOARD
+# ======================================================
 
     st.subheader("📊 Dashboard")
 
@@ -180,15 +209,13 @@ if file:
         fig = px.bar(df, x=x, y=y_col)
 
     elif chart == "Pie":
-        pie_data = df[x].value_counts().reset_index()
-        pie_data.columns = [x, "count"]
-        fig = px.pie(pie_data, names=x, values="count")
+        fig = px.pie(df, names=x)
 
     st.plotly_chart(fig)
 
-    # ======================================================
-    # AUTOML
-    # ======================================================
+# ======================================================
+# 5 AUTOML
+# ======================================================
 
     st.subheader("🤖 AutoML")
 
@@ -197,7 +224,6 @@ if file:
     X = df.drop(columns=[target])
     y = df[target]
 
-    # Combine NLP + tabular
     if X_text is not None:
         X_tab = pd.get_dummies(X.drop(columns=[text_col], errors="ignore"))
         X = np.hstack([X_tab, X_text])
@@ -207,9 +233,7 @@ if file:
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
-    X_train,X_test,y_train,y_test = train_test_split(
-        X,y,test_size=0.2,random_state=42
-    )
+    X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2)
 
     if y.dtype == "object" or len(np.unique(y)) < 20:
         task = "classification"
@@ -228,7 +252,6 @@ if file:
         pred = model.predict(X_test)
 
         score = accuracy_score(y_test,pred)
-        st.success(f"Accuracy: {score}")
 
     else:
 
@@ -238,35 +261,64 @@ if file:
         pred = model.predict(X_test)
 
         score = r2_score(y_test,pred)
-        st.success(f"R2 Score: {score}")
 
-    # ======================================================
-    # EXPLAINABLE AI
-    # ======================================================
+    st.success(f"Score: {score}")
+
+# ======================================================
+# 6 SHAP
+# ======================================================
 
     st.subheader("🧠 Explainable AI")
 
     try:
         explainer = shap.Explainer(model, X_train)
         shap_values = explainer(X_test)
-
         shap.summary_plot(shap_values, X_test, show=False)
         st.pyplot(plt.gcf())
+    except:
+        st.warning("SHAP failed")
 
-    except Exception as e:
-        st.warning(f"SHAP failed: {e}")
+# ======================================================
+# 🔥 7 DATASET CHAT (ADDED)
+# ======================================================
 
-    # ======================================================
-    # PDF REPORT
-    # ======================================================
+    st.subheader("💬 Dataset Chat AI")
+
+    api_key = st.text_input("OpenAI API Key", type="password")
+    question = st.text_input("Ask about dataset")
+
+    if api_key and question:
+
+        client = OpenAI(api_key=api_key)
+
+        prompt = f"""
+        Dataset columns: {list(df.columns)}
+        Sample: {df.head().to_dict()}
+        Question: {question}
+        """
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role":"user","content":prompt}]
+            )
+
+            st.write(response.choices[0].message.content)
+
+        except:
+            st.warning("API Error")
+
+# ======================================================
+# 8 PDF REPORT
+# ======================================================
 
     st.subheader("📦 Generate Report")
 
     if st.button("Create PDF"):
 
-        c = canvas.Canvas("report.pdf")
+        c = canvas.Canvas("report.pdf", pagesize=letter)
 
-        c.drawString(100,750,"AI Analytics Report")
+        c.drawString(100,750,"AI Report")
         c.drawString(100,720,f"Rows: {df.shape[0]}")
         c.drawString(100,700,f"Columns: {df.shape[1]}")
         c.drawString(100,680,f"Score: {score}")
@@ -274,7 +326,7 @@ if file:
         c.save()
 
         with open("report.pdf","rb") as f:
-            st.download_button("Download Report", f, "report.pdf")
+            st.download_button("Download", f, "report.pdf")
 
 else:
-    st.info("Upload dataset to start analysis")
+    st.info("Upload dataset to start")
