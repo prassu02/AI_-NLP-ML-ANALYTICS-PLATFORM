@@ -3,8 +3,15 @@ pandas
 numpy
 plotly
 shap
+optuna
 matplotlib
 scikit-learn
+xgboost
+lightgbm
+catboost
+transformers
+torch
+openai
 reportlab
-wordcloud
 nltk
+wordcloud
