@@ -3,7 +3,6 @@ pandas
 numpy
 plotly
 matplotlib
-stable-baselines3
 scikit-learn
 xgboost
 lightgbm
@@ -16,4 +15,6 @@ nltk
 wordcloud
 openai
 reportlab
-
+prophet
+stable-baselines3
+gymnasium
