@@ -6,12 +6,10 @@ shap
 optuna
 matplotlib
 scikit-learn
+torch
+transformers
 xgboost
 lightgbm
 catboost
-transformers
-torch
 openai
 reportlab
-nltk
-wordcloud
