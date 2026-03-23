@@ -34,7 +34,7 @@ from reportlab.lib.pagesizes import letter
 from collections import Counter
 
 # ======================================================
-# GPU SETUP
+# GPU- SETUP
 # ======================================================
 
 device = 0 if torch.cuda.is_available() else -1
