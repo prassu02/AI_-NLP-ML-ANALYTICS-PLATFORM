@@ -10,7 +10,6 @@ import shap
 import optuna
 import matplotlib.pyplot as plt
 import re
-import torch
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -21,8 +20,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
 from sklearn.semi_supervised import LabelPropagation, SelfTrainingClassifier
-
-from transformers import pipeline
 
 from prophet import Prophet
 from stable_baselines3 import PPO
