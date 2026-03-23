@@ -21,7 +21,6 @@ from sklearn.decomposition import LatentDirichletAllocation
 
 from sklearn.semi_supervised import LabelPropagation, SelfTrainingClassifier
 
-from prophet import Prophet
 from stable_baselines3 import PPO
 import gymnasium as gym
 
