@@ -9,6 +9,4 @@ lightgbm
 shap
 optuna
 reportlab
-torch
-transformers
-sentence-transformers
+
