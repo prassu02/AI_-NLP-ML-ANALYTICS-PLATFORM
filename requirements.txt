@@ -5,7 +5,6 @@ plotly
 scikit-learn
 matplotlib
 shap
-optuna
 transformers
 torch
 reportlab
