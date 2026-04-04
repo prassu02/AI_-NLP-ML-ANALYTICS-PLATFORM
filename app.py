@@ -57,11 +57,11 @@ def load_bert():
 # FILE UPLOAD
 # ======================================================
 
-file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
+file = st.file_uploader("Upload CSV or Excel or Text", type=["csv", "xlsx", "txt"])
 
 if file:
 
-    df = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+    df = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file) else pd.read_txt(file)
 
     st.success("Dataset Loaded")
     st.dataframe(df.head())
