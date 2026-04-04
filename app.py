@@ -56,15 +56,33 @@ def load_bert():
 # ======================================================
 # FILE UPLOAD
 # ======================================================
+try:
+    if file.name.endswith(".csv"):
+        df = pd.read_csv(file)
 
-file = st.file_uploader("Upload CSV or Excel or Text", type=["csv", "xlsx", "txt"])
+    elif file.name.endswith(".xlsx"):
+        df = pd.read_excel(file)
 
-if file:
+    elif file.name.endswith(".txt"):
+        # Try common delimiters automatically
+        try:
+            df = pd.read_csv(file, delimiter=",")  # comma
+        except:
+            try:
+                df = pd.read_csv(file, delimiter="\t")  # tab
+            except:
+                df = pd.read_csv(file, delimiter="|")  # pipe
 
-    df = pd.read_csv(file) if file.name.endswith(".csv") elif file.name.endswith(".xlsx") else pd.read_txt(file)
+    else:
+        st.error("Only CSV, Excel, and TXT files are supported")
+        st.stop()
 
-    st.success("Dataset Loaded")
+    st.success("✅ Dataset Loaded Successfully")
     st.dataframe(df.head())
+
+except Exception as e:
+    st.error(f"❌ Error loading file: {e}")
+    st.stop()
 
     # ======================================================
     # CLEANING
