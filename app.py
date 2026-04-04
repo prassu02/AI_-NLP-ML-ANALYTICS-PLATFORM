@@ -1,5 +1,5 @@
 # ======================================================
-# 🚀 AI NLP + ML PLATFORM
+# 🚀 AI NLP + ML PLATFORM 
 # ======================================================
 
 import streamlit as st
@@ -7,10 +7,10 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import shap
-import optuna
 import matplotlib.pyplot as plt
 import re
 import torch
+import csv
 
 from transformers import pipeline
 
@@ -32,10 +32,10 @@ from collections import Counter
 # ======================================================
 
 st.set_page_config(page_title="AI Platform", layout="wide")
-st.title("🚀 AI NLP Analytics Platform (GPU Enabled)")
+st.title("🚀 AI NLP Analytics Platform")
 
 # ======================================================
-# GPU SETUP
+# GPU CHECK
 # ======================================================
 
 device = 0 if torch.cuda.is_available() else -1
@@ -46,7 +46,7 @@ else:
     st.warning("⚠️ Running on CPU")
 
 # ======================================================
-# CACHE BERT
+# LOAD BERT (CACHED)
 # ======================================================
 
 @st.cache_resource
@@ -56,26 +56,60 @@ def load_bert():
 # ======================================================
 # FILE UPLOAD
 # ======================================================
-file = st.file_uploader("Upload CSV or Excel or Text", type=["csv", "xlsx", "txt"])
+
+file = st.file_uploader("Upload CSV, Excel, or TXT", type=["csv", "xlsx", "txt"])
+
 if file:
 
-    df = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
+    # ======================================================
+    # FILE READING (ROBUST)
+    # ======================================================
 
-    st.success("Dataset Loaded")
-    st.dataframe(df.head())
+    try:
+        if file.name.endswith(".csv"):
+            df = pd.read_csv(file)
+
+        elif file.name.endswith(".xlsx"):
+            df = pd.read_excel(file)
+
+        elif file.name.endswith(".txt"):
+            sample = file.read(1024).decode("utf-8")
+            file.seek(0)
+            dialect = csv.Sniffer().sniff(sample)
+            df = pd.read_csv(file, delimiter=dialect.delimiter)
+
+        else:
+            st.error("Unsupported file type")
+            st.stop()
+
+        st.success("✅ Dataset Loaded")
+        st.dataframe(df.head())
+
+    except Exception as e:
+        st.error(f"❌ File loading error: {e}")
+        st.stop()
+
     # ======================================================
-    # CLEANING
+    # CLEANING (ROBUST)
     # ======================================================
+
     df = df.drop_duplicates()
- for col in df.columns:
 
-    # Convert numeric-like strings to numbers
-    df[col] = pd.to_numeric(df[col], errors='coerce')
+    for col in df.columns:
 
-    if df[col].dtype in ['int64', 'float64']:
-        df[col] = df[col].fillna(df[col].mean())
-    else:
-        df[col] = df[col].fillna(df[col].mode()[0])
+        if df[col].dtype == "object":
+            df[col] = df[col].astype(str).str.strip()
+
+        converted = pd.to_numeric(df[col], errors='coerce')
+
+        if converted.notna().sum() > 0:
+            df[col] = converted
+            df[col] = df[col].fillna(df[col].mean())
+        else:
+            df[col] = df[col].fillna(df[col].mode()[0])
+
+    # Optional: limit size (avoid Streamlit crash)
+    df = df.sample(min(len(df), 5000))
 
     # ======================================================
     # FEATURE ENGINEERING
@@ -118,19 +152,23 @@ if file:
 
         st.plotly_chart(px.bar(freq_df.head(20), x="Count", y="Word", orientation="h"))
 
-        # BERT
+        # ======================================================
+        # BERT SENTIMENT
+        # ======================================================
+
         st.markdown("### 🤖 Sentiment Analysis")
 
         try:
             bert = load_bert()
-
             results = bert(df["clean_text"].tolist()[:50])
             st.write(results)
-
         except Exception as e:
             st.warning(f"BERT error: {e}")
 
-        # LDA
+        # ======================================================
+        # TOPIC MODELING
+        # ======================================================
+
         st.markdown("### 🧩 Topic Modeling")
 
         try:
@@ -147,7 +185,7 @@ if file:
                 st.write(f"Topic {i+1}: {top_words}")
 
         except:
-            st.warning("LDA failed")
+            st.warning("Topic modeling failed")
 
     # ======================================================
     # DASHBOARD
@@ -177,7 +215,7 @@ if file:
 
     st.subheader("🤖 AutoML")
 
-    target = st.selectbox("Select Target", df.columns)
+    target = st.selectbox("Select Target Column", df.columns)
 
     X = pd.get_dummies(df.drop(columns=[target]))
     y = df[target]
@@ -218,7 +256,7 @@ if file:
         st.pyplot(plt.gcf())
 
     except:
-        st.warning("SHAP failed")
+        st.warning("SHAP failed (large data or compatibility issue)")
 
     # ======================================================
     # PDF REPORT
@@ -227,6 +265,7 @@ if file:
     st.subheader("📦 Generate Report")
 
     if st.button("Generate PDF"):
+
         c = canvas.Canvas("report.pdf", pagesize=letter)
 
         c.drawString(100, 750, "AI Model Report")
