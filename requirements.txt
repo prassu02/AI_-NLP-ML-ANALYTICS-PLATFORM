@@ -2,11 +2,11 @@ streamlit
 pandas
 numpy
 plotly
-matplotlib
 scikit-learn
-xgboost
-lightgbm
+matplotlib
 shap
 optuna
+transformers
+torch
 reportlab
-
+openpyxl
