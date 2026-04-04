@@ -66,14 +66,16 @@ if file:
     # ======================================================
     # CLEANING
     # ======================================================
-
     df = df.drop_duplicates()
+for col in df.columns:
 
-    for col in df.columns:
-        if df[col].dtype == "object":
-            df[col] = df[col].fillna(df[col].mode()[0])
-        else:
-            df[col] = df[col].fillna(df[col].mean())
+    # Convert numeric-like strings to numbers
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    if df[col].dtype in ['int64', 'float64']:
+        df[col] = df[col].fillna(df[col].mean())
+    else:
+        df[col] = df[col].fillna(df[col].mode()[0])
 
     # ======================================================
     # FEATURE ENGINEERING
