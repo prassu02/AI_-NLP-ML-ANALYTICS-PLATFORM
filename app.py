@@ -56,6 +56,7 @@ def load_bert():
 # ======================================================
 # FILE UPLOAD
 # ======================================================
+file = st.file_uploader("Upload CSV or Excel or Text", type=["csv", "xlsx", "txt"])
 try:
     if file.name.endswith(".csv"):
         df = pd.read_csv(file)
