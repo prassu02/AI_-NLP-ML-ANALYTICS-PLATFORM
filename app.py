@@ -114,12 +114,18 @@ if file:
     # ======================================================
     # FEATURE ENGINEERING
     # ======================================================
-
     num_cols = df.select_dtypes(include=np.number).columns
 
     for col in num_cols:
-        df[f"{col}_square"] = df[col] ** 2
+        df[f"{col}_square"] = np.power(df[col], 2)
         df[f"{col}_log"] = np.log1p(np.abs(df[col]))
+
+    # Fix infinity issues
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    for col in df.select_dtypes(include=np.number).columns:
+        df[col] = df[col].fillna(df[col].median())
+        df[col] = np.clip(df[col], -1e6, 1e6)
 
     # ======================================================
     # NLP SECTION
