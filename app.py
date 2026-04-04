@@ -67,7 +67,7 @@ if file:
     # CLEANING
     # ======================================================
     df = df.drop_duplicates()
-for col in df.columns:
+ for col in df.columns:
 
     # Convert numeric-like strings to numbers
     df[col] = pd.to_numeric(df[col], errors='coerce')
