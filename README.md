@@ -162,7 +162,3 @@ AI & Data Science Enthusiast
 Give it a ⭐ on GitHub and share it!
 
 ---
-
-## 📜 License
-
-This project is licensed under the MIT License.
